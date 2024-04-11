@@ -5,6 +5,12 @@ const bcrypt = require("bcrypt");
 const router = express.Router();
 const jwt = require("jsonwebtoken");
 const { restart } = require('nodemon');
+const nodemailer = require("nodemailer");
+
+const fcm = require("fcm-node")
+const erverKey="AAAAX7-PUXI:APA91bFCkcY-M87LhGgGEHhr7wqzRuvCfvtCLUehb6Fp4pYrw1QhqsJZ7cBJ2LRfrmvKl1j1YJQMbgI2UGqi4kuUBaD9MfIxPRerr2QQz8Z7boJsq5Sdl6Lhs_WKl0ng_2x0XXwhu2Aq"
+const me=new fcm(erverKey);
+
 let refreshTokens=[]
 router.post('/users/token', async(req,res)=>{
   
@@ -26,7 +32,7 @@ router.delete('/users/logOut', (req,res)=>{
   return res.sendStatus(204)
 })
 
-router.post('/users/posts', outhoricateToken, async(req,res)=>{
+router.get('/users/posts', outhoricateToken, async(req,res)=>{
  
   await  database.getAllUsers2(req.user).then((data)=>
   {
@@ -40,54 +46,191 @@ router.post('/users/posts', outhoricateToken, async(req,res)=>{
           
 })
 
-router.get('/users/login', async(req,res)=>{
-  const userr = req.body[0]
- 
-  const user2 = req.body
-  
-    await  database.getAllUsers(user2.name,user2.password).then((data)=>
+router.post('/users/login', async(req,res)=>{
+  const user = req.body
+    await  database.getAllUsers(user.name,user.password).then((data)=>
     {
-      const username = user2.name
-      const user={name: username}
-       
+     console.log(req.body)
+     database.getTokens().then(tokens=>{
+           console.log(data)
+              let contain = false;
+              for(i=0;i<tokens.length;i++){
+                   console.log(tokens[i])
+                  if(tokens[i].device === req.body.token){
+                    contain=true;
+                  }
+                }
+                if(contain==false){
+                 console.log(data.name)
+                  database.addToken(data.id, req.body.token,data.name);
+                }
+      })
       const accessToken= generateRefreshToken(user)
       const refreshToken = jwt.sign(user,process.env.REFRESH_ACCESS_TOKEN)
       refreshTokens.push(refreshToken)
-      
-      const wallet = data.currency;
-      for(let i = 0; i < wallet.length; i++) {
-        let obj = wallet[i];
-       
-        data.wallet=obj["amount"];
-          }
-      
-          console.log("Logged as "+data.name)
-     
-     return res.json([{accessToken  : accessToken},{  refreshToken: refreshToken},{user: data}])
+      console.log("Logged as "+data.name)
+   return res.json({accessToken  : accessToken,  refreshToken: refreshToken,user: data,status:1})
     }
     ).catch(err => {
       console.log(err)
-     return res.send(err)
+     return res.json({"error":err,status:0})
    });
    
 })
+
 router.post('/users/newUser',async (req,res)=>{
    
    console.log(req.body)
   const salt = await bcrypt.genSalt();
-  const hashedPassword = await bcrypt.hash(req.body.password, salt)
-  
-  var user = req.body
-      user.password=hashedPassword;
-  
+  if(req.body.password=="0000"){
+
+    var user = req.body
+     
+    user.password=null;
   return res.send(  database.addNewUser(user))
+  }else{
+   
+    const hashedPassword = await bcrypt.hash(req.body.password, salt)
+  
+    var user = req.body
+        user.password=hashedPassword;
+
+        database.addNewUser(user).then(data=>{
+          console.log(data)
+          res.send(data)
+        }).catch(error=>{
+          res.send("Error")
+        })
+
+        
+  }
+ 
+
 })
 
 
+
+
+router.post('/users/uploadFile',outhoricateToken,async (req,res)=>{
+   
+ 
+  console.log(req.body+"cipeczka")
+   
+  
+  })
+router.post('/users/resetPassword',async (req,res)=>{
+
+  const transport = nodemailer.createTransport({
+    host: "smtp.poczta.onet.pl",
+    port: 465,
+    auth: {
+      user: "rafal.sieczkowski@onet.eu",
+      pass: "Onet@fckgwrhqq2"
+    }
+  });
+  var mailOptions = {
+    from: 'rafal.sieczkowski@onet.eu',
+    to: 'xylohunter1991@gmail.com',
+    subject: 'Sending Email using Node.js',
+    text: 'That was easy!'
+  };
+database.getUsers(req.body.email).then(data=>{
+  transport.sendMail(mailOptions, function(error, info){
+  if (error) {
+    console.log(error);
+  } else {
+
+    console.log('Email sent: ' + info.response);
+    
+   
+  }
+});
+  console.log(data)
+  
+})
+  
+   
+  
+  })
+router.post('/users/getNotify',outhoricateToken,async (req,res)=>{
+   console.log(req.body.token)
+  const message = {
+    notification:{
+        title:"cipeczka",
+        body:"pochwa"
+    },
+    to:"cwUblBGAyBQpCryB_taYlV:APA91bHVboJnST7QFEDYcOcHmrO4xlpBepacUwTsfKzxUA_vynDKACFqzH8p5kkMAIuAoCGUfV66xd3kJdz3bZsgQtaBq4mR4CH84Hahfvp89aTnE8IXo7tYrZWDcTN29l2kg2Zk-Njm"
+  }
+  console.log(message)
+  me.send(message, (err,resonse)=>{
+    console.log(resonse)
+    console.log(err)
+    });
+    
+  
+   
+  
+  })
+router.post('/users/getLists',outhoricateToken,async (req,res)=>{
+   console.log(req.body)
+  database.getLists(req.body.id).then(data=>{
+    console.log(data)
+    return res.json({lists  : data,  status:1})
+  }).catch(err => {
+    console.log(err)
+   return res.json({"error":err,status:0})
+  });
+  
+   
+  
+  })
+
+  router.post('/users/getEvent',outhoricateToken,async (req,res)=>{
+    
+   database.getEvents(req.body.id).then(async data=>{
+     console.log(data)
+     return res.json(data)
+   }).catch(err => {
+     console.log(err)
+    return res.json({"error":err,status:0})
+   });
+   
+    
+   
+   })
+router.post('/users/updateList',outhoricateToken,async (req,res)=>{
+   console.log(req.body)
+  database.updateList(req.body).then(async data=>{
+  
+  }).catch(err => {
+    console.log(err)
+   return res.json({"error":err,status:0})
+  });
+  
+   
+  
+  })
+  router.post('/users/updateEvent',outhoricateToken,async (req,res)=>{
+   
+        
+     
+            database.updateEvent(req.body);
+    })
+  router.put('/users/updateNotice',outhoricateToken,async (req,res)=>{
+   
+    database.updateNotice(req.body).then(data=>{
+    console.log(req.body)
+    }).catch(err => {
+      console.log(err)
+     return res.json({"error":err,status:0})
+    });
+    
+     
+    
+    })
 router.delete('/users/deleteUser',outhoricateToken,async (req,res)=>{
-  await  database.getAllUsers2(req.user).then(async(data)=>
-  {           const deposit = req.body
-              const json =data.currency;
+  await  database.getAllUsers2(req.body).then(async(data)=>
+  {       
               
            console.log(data)
               database.deposit(req.body, data.id)
@@ -101,68 +244,58 @@ router.delete('/users/deleteUser',outhoricateToken,async (req,res)=>{
   ).catch(err => {
    console.log(err)
  });
-
+n
   
 })
 
 
 
-router.post('/users/trans', outhoricateToken, async(req,res)=>{
- 
-
-
-  await  database.getAllUsers2(req.user).then(async(data)=>
-  {
-    console.log(data.id)
-
-  
-    await database.addTransaction(req.body,data.id).then((data)=>{
-     return res.json(data)
-    })
-    
-
+router.post('/users/addEvent', outhoricateToken, async(req,res)=>{
+ await database.addEvent(req.body)
+          })
+router.post('/users/delEvent',outhoricateToken, async (req,res)=>{
+ console.log(req.body)
+  await  database.delEvent(req.body.id).then(async(data)=>
+  {         
+            
+    res.json(data)
   }
   ).catch(err => {
    console.log(err)
  });
+
+})
+router.post('/users/addList', outhoricateToken, async(req,res)=>{
+ 
+
+   console.log(req.body)
+  await database.addList(req.body)
+           
+ })
+
+router.put('/users/updateUser',outhoricateToken, async (req,res)=>{
+
+  console.log(req.body)
+  await  database.updateUser(req.body).then(async(data)=>
+  {         
+              
+         
+            
+           
+              
+            
+    res.json(data)
+  }
+  ).catch(err => {
+   console.log(err)
+ });
+
+})
+router.post('/users/getNotices',outhoricateToken, async (req,res)=>{
+ console.log(req.body)
+  await  database.getNotices(req.body).then(async(data)=>
+  {         
           
-})
-router.post('/users/mainAccount',outhoricateToken, async (req,res)=>{
- 
-  await  database.getAllUsers2(req.user).then(async(data)=>
-  {           const deposit = req.body
-              const json =data.currency;
-              
-              for(let i = 0; i < json.length; i++) {
-                ;
-               
-                  if(json[i]["currencyCode"]=="pln"){
-                    console.log(deposit["amount"])
-                    console.log( json[i]["amount"])
-                    json[i]["amount"]+=deposit["amount"]
-                    console.log( json[i]["amount"])
-                    await database.deposit(json,data.id)
-                  }
-
-                 
-            }
-            console.log(json)
-            
-    res.json(data)
-  }
-  ).catch(err => {
-   console.log(err)
- });
-
-})
-router.put('/users/updateCurrency',outhoricateToken, async (req,res)=>{
- 
-  await  database.getAllUsers2(req.user).then(async(data)=>
-  {           const deposit = req.body
-              const json =data.currency;
-              
-           console.log(data)
-              database.deposit(req.body, data.id)
            
               
             
@@ -173,34 +306,12 @@ router.put('/users/updateCurrency',outhoricateToken, async (req,res)=>{
  });
 
 })
-router.get('/users/getCurrency',outhoricateToken, async (req,res)=>{
- 
-  await  database.getAllUsers2(req.user).then(async(data)=>
-  {           const deposit = req.body
-              const json =data.currency;
+router.delete('/users/delNotice',outhoricateToken, async (req,res)=>{
+ console.log(req.body)
+  await  database.deleteNotice(req.body).then(async(data)=>
+  {          
+                res.json({"message":data})
               
-           console.log(data)
-              database.deposit(req.body, data.id)
-           
-              
-            
-    res.json(data.currency)
-  }
-  ).catch(err => {
-   console.log(err)
- });
-
-})
-router.get('/users/getTransations',outhoricateToken, async (req,res)=>{
- 
-  await  database.getAllUsers2(req.user).then(async(data)=>
-  {           const deposit = req.body
-              const json =data.currency;
-              
-           console.log(data)
-              database.getTransations(data.id).then((data)=>{
-                res.json(data)
-              })
            
               
             
@@ -211,11 +322,29 @@ router.get('/users/getTransations',outhoricateToken, async (req,res)=>{
  });
 
 })
-router.get('/users/get' ,async (req,res)=>{
- 
-  return res.send("cipeczka")
+router.post('/users/addNotice' ,async (req,res)=>{
+ console.log(req.body)
+ await database.addNotice(req.body).then(done=>{
+  res.json({"message":done})
+  console.log(req.body)
+ }).catch((error)=>{
+  res.json({"error":error})
+ })
+
 
 })
+
+router.delete('/users/deleteList' ,async (req,res)=>{
+  console.log(req.body)
+  await database.deleteList(req.body).then(done=>{
+   res.json({"message":done})
+   console.log(req.body)
+  }).catch((error)=>{
+   res.json({"error":error})
+  })
+ 
+ 
+ })
 function  outhoricateToken(req,res,next){
   
   const outhHeader =  req.headers['authorization']
