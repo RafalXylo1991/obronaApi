@@ -114,21 +114,16 @@ async function addList(list){
     async function updateList(list){
         return new Promise(async(resolve,reject)=>{
             const create ="CREATE TABLE lists( id  SERIAL PRIMARY KEY, user_id  INT ,title TEXT,date TEXT, tasks JSON,isdone BOOLEAN) "
-               
-            const quary = "update  lists set tasks='"+list.tasks+"', progress="+ list.progress+ ", isdone="+list.isdone+    " where id="+list.id;
-           console.log(quary)
-            await client.query(quary, (err, res) => {
-                 if (err) {
-                     console.error(err);
-                     return;
-                 }
-                
-                 
-                 resolve(res.rows)
-                
-                 
-               
-             });
+            return new  Promise(async (resolve,reject)=>{
+                knex('lists').update(
+                    {tasks: list.tasks,
+                    progress: list.progress,
+                    isdone: list.isdone,
+                    date_done: list.date_done,
+                    },
+                ).where('id', list.id).then(data=>resolve(data))
+              })
+           
              
         })
         

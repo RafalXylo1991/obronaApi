@@ -8,6 +8,7 @@ exports.up = function(knex) {
         table.integer('user_id');
         table.text('title');
         table.text('date');
+        table.text('date_done');
         table.json('tasks');
         table.boolean('isdone');
         table.integer('progress');
