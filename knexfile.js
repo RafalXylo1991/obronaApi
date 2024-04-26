@@ -9,10 +9,11 @@ module.exports = {
   development: {
     client: 'pg',
     connection: {
-      host: "dpg-coi1r6f79t8c738a82s0-a.frankfurt-postgres.render.com",
-      user: 'xylo',
-      password: 'aRVvfFFyrUyCxaxm9fcrXjlYDWz5Iurb',
-      database: 'obrona_3g7k',
+      user: process.env.DB_USER,
+      host: process.env.DB_HOST,
+      database: process.env.DB_DATABASE,
+      password: process.env.DB_PASSWORD,
+      port: process.env.DB_PORT,
       ssl: true
     },
     pool: {

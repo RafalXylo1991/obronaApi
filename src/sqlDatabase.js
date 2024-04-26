@@ -1,41 +1,28 @@
-
+require('dotenv').config();
 const bcrypt = require("bcrypt");
 
 const { Client } = require('pg');
 
-const create = `
-CREATE TABLE users (
-    id integer,
-    name varchar,
-    password varchar,
-    wallet integer,
-    email varchar,
-    phoneNumber integer,
-    accountNumber text,
-    pin integer,
-    currencyCode text,
-    currency jsonb,
-    currencyaccount text
-);
-`
 
 const knex = require('knex')({
     client: 'pg',
     connection: {
-        host: '127.0.0.1',
-        port: 5432,
-        user: 'postgres',
-        password: 'xylo',
-        database: 'obrona',
+        user: process.env.DB_USER,
+        host: process.env.DB_HOST,
+        database: process.env.DB_DATABASE,
+        password: process.env.DB_PASSWORD,
+        port: process.env.DB_PORT,
+        ssl: true
     },
 });
 
 const client = new Client({
-    user: 'postgres',
-    host: 'localhost',
-    database: 'obrona',
-    password: 'xylo',
-    port: 5432,
+    user: process.env.DB_USER,
+    host: process.env.DB_HOST,
+    database: process.env.DB_DATABASE,
+    password: process.env.DB_PASSWORD,
+    port: process.env.DB_PORT,
+    ssl: true
 })
 async function connect() {
 
@@ -47,26 +34,29 @@ async function connect() {
 
 async function addNewUser(user) {
     return new Promise(async (resolve, reject) => {
-        var users = []
-        var oneuser;
-        console.log(user)
-        const currencyJson = JSON.stringify(user.currency)
+        knex("usersshield").select("*").where("email", user.email).then(data => {
+            console.log(!data.length)
+            if (!data.length) {
 
-
-        const quary = " INSERT INTO usersshield (name, password,email) VALUES ('" + user.name + "','" + user.password + "','" + user.email + "');"
-        console.log(quary)
-        user.currency = currencyJson
-
-        client.query(quary, (err, res) => {
-            if (err) {
-                console.error(err);
-                return;
+                knex('usersshield').insert([
+                    {
+                        'name': user.name,
+                        'password': user.password,
+                        'email': user.email,
+                    },
+                ]).then(data => resolve("User has been added"));
+                resolve("User has been added");
             } else {
-                resolve("User has been added")
+
+                reject("Podany email jest już zajęty");
             }
 
 
         });
+
+
+
+
     })
 
 }
@@ -297,13 +287,15 @@ function addToken(userId, token, name) {
 }
 
 async function getAllUsers(name, password) {
-
+    console.log(name);
+    console.log(password);
 
 
 
 
     try {
         return new Promise(async (resolve, reject) => {
+
             const quary = " SELECT * FROM usersshield"
             await client.query(quary, async (err, res) => {
                 if (err) {
@@ -313,7 +305,8 @@ async function getAllUsers(name, password) {
 
 
                 users = JSON.parse(JSON.stringify(res.rows))
-
+                console.log(users);
+                console.log("users printed")
                 for (i = 0; i < users.length; i++) {
 
                     if (users[i].name == name) {
@@ -357,7 +350,6 @@ async function getUsers(email) {
 
 
 
-    console.log(email)
 
 
 
@@ -373,10 +365,11 @@ async function getUsers(email) {
             users = JSON.parse(JSON.stringify(res.rows))
 
             for (i = 0; i < users.length; i++) {
-                if (users[i].email == email) {
+                if (users[i].email === email) {
                     resolve(users[i])
                 }
             }
+            reject("Nie znaleziono użytkownika")
 
 
 
@@ -403,6 +396,19 @@ async function getEvents(id) {
 async function getLists(id) {
     return new Promise(async (resolve, reject) => {
         knex("lists").select("*").then(data => resolve(data))
+    })
+
+
+}
+
+async function setResetKey(key, id) {
+    return new Promise(async (resolve, reject) => {
+        knex('usersshield').update(
+            {
+                resetKey: key,
+            },
+        ).where('id', id).then(data => resolve(data))
+
     })
 
 
@@ -502,7 +508,8 @@ module.exports = {
     deleteList,
     addToken,
     getTokens,
-    getUsers
+    getUsers,
+    setResetKey
 
 }
 

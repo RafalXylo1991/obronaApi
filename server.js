@@ -22,7 +22,7 @@ const transport = nodemailer.createTransport({
   port: 465,
   auth: {
     user: "rafal.sieczkowski@onet.eu",
-    pass: "Onet@fckgwrhqq2"
+    pass: "ziwiD0?lc@4k4@7ufuvu"
   }
 });
 var mailOptions = {
@@ -31,15 +31,15 @@ var mailOptions = {
   subject: 'Sending Email using Node.js',
   text: 'That was easy!'
 };
-/*
-transport.sendMail(mailOptions, function(error, info){
+
+transport.sendMail(mailOptions, function (error, info) {
   if (error) {
     console.log(error);
   } else {
     console.log('Email sent: ' + info.response);
   }
 });
-*/
+
 setInterval(() => {
   check.check();
 }, 2000);
