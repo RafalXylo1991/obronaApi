@@ -17,6 +17,6 @@ app.use(express.static(path.join(__dirname, 'public')))
 
 setInterval(() => {
   check.check();
-}, 2000);
+}, 1000 * 60 * 60 * 6);
 
 app.listen(port, () => { console.log("Server has started"); connect.connect() })
