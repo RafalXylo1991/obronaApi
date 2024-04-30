@@ -119,11 +119,10 @@ router.post('/users/uploadFile', outhoricateToken, async (req, res) => {
 })
 router.post('/users/resetPassword', async (req, res) => {
   const transport = nodemailer.createTransport({
-    host: "smtp.poczta.onet.pl",
-    port: 465,
+    service: 'gmail',
     auth: {
-      user: "rafal.sieczkowski@onet.eu",
-      pass: "ziwiD0?lc@4k4@7ufuvu"
+      user: 'xylohunter1991@gmail.com',
+      pass: 'oked ikkq qnqz hifo'
     }
   });
 
@@ -131,17 +130,18 @@ router.post('/users/resetPassword', async (req, res) => {
 
     let number = (Math.floor(Math.random() * 90000) + 100);
     var mailOptions = {
-      from: 'rafal.sieczkowski@onet.eu',
+      from: 'xylohunter1991@gmail.com',
       to: data.email,
       subject: 'Reset hasła',
       text: 'To twój numer do zresetowania hasła ' + number,
     };
+    console.log(mailOptions);
     transport.sendMail(mailOptions, function (error, info) {
       if (error) {
-        console.log(error); fdg
+        console.log(error);
       } else {
-
-        res.send("account founded");
+        console.log(info);
+        res.json({ "resetkey": number, "message": "account founded" });
 
 
       }
@@ -213,11 +213,13 @@ router.post('/users/updateList', outhoricateToken, async (req, res) => {
 
 })
 router.post('/users/updateEvent', outhoricateToken, async (req, res) => {
-
-
-
   database.updateEvent(req.body);
 })
+
+router.post('/users/setPassword', async (req, res) => {
+  database.setPassword(req.body.password, req.body.email);
+})
+
 router.put('/users/updateNotice', outhoricateToken, async (req, res) => {
 
   database.updateNotice(req.body).then(data => {
@@ -230,6 +232,12 @@ router.put('/users/updateNotice', outhoricateToken, async (req, res) => {
 
 
 })
+
+router.post('/users/sendResetKey', async (req, res) => {
+
+  console.log(database.getUserByEmail(req.body.resetkey).then(data => res.send({ "message": data })));
+})
+
 router.delete('/users/deleteUser', outhoricateToken, async (req, res) => {
   await database.getAllUsers2(req.body).then(async (data) => {
 
@@ -252,6 +260,7 @@ router.delete('/users/deleteUser', outhoricateToken, async (req, res) => {
 
 
 router.post('/users/addEvent', outhoricateToken, async (req, res) => {
+  console.log(req.body)
   await database.addEvent(req.body)
 })
 router.post('/users/delEvent', outhoricateToken, async (req, res) => {

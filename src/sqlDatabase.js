@@ -166,30 +166,8 @@ async function getUserById(id) {
     })
 }
 async function getTokens() {
-
-    console.log("tokens")
     return new Promise(async (resolve, reject) => {
-        const quary = " select * from devicetokens"
-        await client.query(quary, async (err, res) => {
-            if (err) {
-                console.error(err);
-                return;
-            } else {
-
-                resolve(
-                    res.rows
-                )
-            }
-
-
-
-
-
-
-
-
-        });
-
+        knex("devicetokens").select("*").then(data => resolve(data))
     })
 }
 
@@ -418,6 +396,25 @@ async function getNotices(user) {
         knex('notices').select('*').where('user_id', user.id).then(data => resolve(data));
     })
 }
+
+async function getUserByEmail(resetkey) {
+    return new Promise(async (resolve, reject) => {
+        knex('usersshield').select('*').where('resetKey', resetkey).then(data => resolve("key correct"));
+    })
+}
+
+async function setPassword(password, email) {
+    console.log(password);
+    return new Promise(async (resolve, reject) => {
+        const salt = await bcrypt.genSalt();
+        const hashedPassword = await bcrypt.hash(password, salt)
+
+        knex('usersshield').update({ password: hashedPassword }).where('email', email).then(data => resolve("Hasło zmienione pomyślnie"));
+    })
+}
+
+
+
 async function updateUser(user) {
 
 
@@ -509,7 +506,9 @@ module.exports = {
     addToken,
     getTokens,
     getUsers,
-    setResetKey
+    setResetKey,
+    getUserByEmail,
+    setPassword
 
 }
 

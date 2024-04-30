@@ -6,8 +6,6 @@ const path = require('path')
 const nodemailer = require("nodemailer");
 const check = require("./jobs/send.js")
 const connect = require("./src/sqlDatabase.js")
-
-
 const userRouters = require("./routes/users.js")
 
 const app = express();
@@ -16,29 +14,6 @@ const port = 5000;
 app.use(bodyParser.json())
 app.use("/", userRouters);
 app.use(express.static(path.join(__dirname, 'public')))
-
-const transport = nodemailer.createTransport({
-  host: "smtp.poczta.onet.pl",
-  port: 465,
-  auth: {
-    user: "rafal.sieczkowski@onet.eu",
-    pass: "ziwiD0?lc@4k4@7ufuvu"
-  }
-});
-var mailOptions = {
-  from: 'rafal.sieczkowski@onet.eu',
-  to: 'xylohunter1991@gmail.com',
-  subject: 'Sending Email using Node.js',
-  text: 'That was easy!'
-};
-
-transport.sendMail(mailOptions, function (error, info) {
-  if (error) {
-    console.log(error);
-  } else {
-    console.log('Email sent: ' + info.response);
-  }
-});
 
 setInterval(() => {
   check.check();
