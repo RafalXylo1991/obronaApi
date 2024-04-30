@@ -9,7 +9,7 @@ const connect = require("./src/sqlDatabase.js")
 const userRouters = require("./routes/users.js")
 
 const app = express();
-const port = 5000;
+const port = process.env.PORT || 5000;
 
 app.use(bodyParser.json())
 app.use("/", userRouters);

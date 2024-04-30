@@ -51,6 +51,7 @@ function check() {
                     }
                     let godziny = dateformat.subtract(enddate, startdate).toHours(); //tyle godzin zostalo do wydarzenia
                     if (godziny < 0) {
+
                         const message = {
                             notification: {
                                 title: "Event",
@@ -70,6 +71,12 @@ function check() {
                             },
                             to: element.device
                         }
+
+                        me.send(message, (err, resonse) => {
+                            if (err) {
+                                console.log(err)
+                            }
+                        });
                     } else if (godziny < delay) {
                         const message = {
                             notification: {
