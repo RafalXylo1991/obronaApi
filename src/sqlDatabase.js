@@ -123,24 +123,9 @@ async function updateList(list) {
 }
 async function addNotice(event) {
     return new Promise(async (resolve, reject) => {
-        const create = "CREATE TABLE notices( id  SERIAL PRIMARY KEY, user_id  INT ,title TEXT, subject TEXT,description TEXT) "
-
-        const quary = "INSERT INTO  notices (user_id, title, subject, description, important)  VALUES ('" + event.id + "','" + event.title + "','" + event.subject + "','" + event.description + "','" + event.isimportant + "');"
-        console.log(quary)
-        await client.query(quary, (err, res) => {
-            if (err) {
-                console.error(err);
-                reject("Something went wrong take a look " + err)
-                return;
-            }
-            resolve("Notice was added")
-
-
-
-
-
-        });
-
+        knex('notices').insert([{ 'user_id': event.user_id, 'title': event.title, 'subject': event.subject, 'description': event.description, 'important': event.important, }]).then((data) =>
+            resolve("Notatka dodana")
+        );
     })
 
 }
@@ -283,47 +268,28 @@ async function getAllUsers(name, password) {
 
 
                 users = JSON.parse(JSON.stringify(res.rows))
-                console.log(users);
-                console.log("users printed")
                 for (i = 0; i < users.length; i++) {
-
+                    console.log(users[i].name);
+                    console.log(name);
                     if (users[i].name == name) {
                         if (password == undefined) {
                             resolve(users[i])
-
                         } else {
-
-
                             if (await bcrypt.compare(password, users[i].password)) {
-
-
                                 resolve(users[i])
-
                             } else {
                                 reject("Hasło jest nie poprawne")
-
                             }
                         }
-
-
-
                     }
                 }
                 reject("Nie znaleziono użytkownika")
-
-
-
-
             });
-
         })
-
     } catch (error) {
         console.log("found error")
     }
-
 }
-
 async function getUsers(email) {
 
 

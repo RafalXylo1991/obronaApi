@@ -329,10 +329,8 @@ router.delete('/users/delNotice', outhoricateToken, async (req, res) => {
 
 })
 router.post('/users/addNotice', async (req, res) => {
-  console.log(req.body)
   await database.addNotice(req.body).then(done => {
     res.json({ "message": done })
-    console.log(req.body)
   }).catch((error) => {
     res.json({ "error": error })
   })
