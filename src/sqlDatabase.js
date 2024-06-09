@@ -12,7 +12,7 @@ const knex = require('knex')({
         database: process.env.DB_DATABASE,
         password: process.env.DB_PASSWORD,
         port: process.env.DB_PORT,
-        ssl: true
+
     },
 });
 
@@ -22,7 +22,7 @@ const client = new Client({
     database: process.env.DB_DATABASE,
     password: process.env.DB_PASSWORD,
     port: process.env.DB_PORT,
-    ssl: true
+
 })
 async function connect() {
 
@@ -33,19 +33,20 @@ async function connect() {
 }
 
 async function addNewUser(user) {
+
     return new Promise(async (resolve, reject) => {
         knex("usersshield").select("*").where("email", user.email).then(data => {
             console.log(!data.length)
             if (!data.length) {
 
-                knex('usersshield').insert([
+                resolve(knex('usersshield').insert([
                     {
                         'name': user.name,
                         'password': user.password,
                         'email': user.email,
                     },
-                ]).then(data => resolve("User has been added"));
-                resolve("User has been added");
+                ]).then(data => resolve("Użytkownik został dodany")));
+
             } else {
 
                 reject("Podany email jest już zajęty");
@@ -60,8 +61,7 @@ async function addNewUser(user) {
     })
 
 }
-async function addEvent(event) {
-    console.log(event)
+async function addEvent(event, date) {
     return new Promise(async (resolve, reject) => {
         knex('events').insert([
             {
@@ -74,58 +74,70 @@ async function addEvent(event) {
                 'description': event.desc,
                 'timer': event.remindTime
             },
-        ]).then(data => resolve(data))
+        ]).then(data => {
+            console.log(date);
+            knex('eventHistory').insert([{ 'user_id': event.id, 'date': date }]).then((data) =>
+                resolve("Notatka dodana")
+            )
+            resolve(data)
+        }
+        )
 
 
     })
 
 }
-async function addList(list) {
-    console.log("cycki")
+async function addList(list, date) {
     return new Promise(async (resolve, reject) => {
-        const create = "CREATE TABLE lists( id  SERIAL PRIMARY KEY, user_id  INT ,title TEXT,date TEXT, tasks JSON,isdone BOOLEAN) "
-
-        const quary = "INSERT INTO  lists (user_id, title,date, tasks, isdone,progress)  VALUES ('" + list.id + "','" + list.title + "','" + list.date + "','" + list.tasks + "','" + list.isdone + "','" + list.progress + "');"
-        console.log(quary)
-        await client.query(quary, (err, res) => {
-            if (err) {
-                console.error(err);
-                return;
-            }
-
-
-            resolve(res.rows)
-
-
-
-        });
-
+        knex('lists').insert([{ 'user_id': list.id, 'title': list.title, 'date': list.date, 'tasks': list.tasks, 'isdone': list.isdone, 'progress': list.progress }])
+            .returning('id') // returns all columns of the inserted row
+            .then((rows) => {
+                knex('listHistory').insert([{ 'user_id': list.id, 'list_id': rows[0].id, 'date': date, 'isDone': false }]).then((data2) => {
+                    resolve(data2);
+                })
+            })
+            .catch((err) => {
+                console.error('Error inserting row:', err);
+            })
     })
-
 }
 async function updateList(list) {
     return new Promise(async (resolve, reject) => {
-        const create = "CREATE TABLE lists( id  SERIAL PRIMARY KEY, user_id  INT ,title TEXT,date TEXT, tasks JSON,isdone BOOLEAN) "
-        return new Promise(async (resolve, reject) => {
-            knex('lists').update(
+        knex('lists').update(
+            {
+                tasks: list.tasks,
+                progress: list.progress,
+                isdone: list.isdone,
+                date_done: list.date_done,
+            },
+        ).where('id', list.id).then(data => {
+            knex('listHistory').update(
                 {
-                    tasks: list.tasks,
-                    progress: list.progress,
-                    isdone: list.isdone,
-                    date_done: list.date_done,
+                    isDone: list.isdone,
                 },
-            ).where('id', list.id).then(data => resolve(data))
-        })
-
+            ).where('list_id', list.id).then(hist =>
+                console.log(list.isdone)
+            );
+            resolve(data);
+        }
+        )
 
     })
 
+
+
 }
-async function addNotice(event) {
+async function addNotice(event, date) {
+    console.log(date);
     return new Promise(async (resolve, reject) => {
-        knex('notices').insert([{ 'user_id': event.user_id, 'title': event.title, 'subject': event.subject, 'description': event.description, 'important': event.important, }]).then((data) =>
-            resolve("Notatka dodana")
-        );
+        knex('notices').insert([{ 'user_id': event.id, 'title': event.title, 'subject': "", 'description': event.description, 'important': event.isimportant, }]).then((data) => {
+
+            knex('noticeHistory').insert([{ 'user_id': event.id, 'date': date }]).then((data) =>
+                resolve("Notatka dodana")
+            )
+        }
+
+        )
     })
 
 }
@@ -427,6 +439,35 @@ async function updateEvent(event) {
         ).where('id', event.id).then(data => resolve(data))
     })
 }
+async function getHistory(user) {
+    let history = [];
+    return new Promise(async (resolve, reject) => {
+        return knex
+            .select("*")
+            .from('listHistory')
+            .where('user_id', user.id)
+            .then(data => {
+                history.push(data);
+                knex
+                    .select("*")
+                    .from('noticeHistory')
+                    .where('user_id', user.id)
+                    .then(data => {
+                        history.push(data);
+                        knex
+                            .select("*")
+                            .from('eventHistory')
+                            .where('user_id', user.id)
+                            .then(data => {
+                                history.push(data);
+                                resolve(history);
+                            });
+                    });
+            });
+
+    })
+
+}
 async function updateNotice(notice) {
 
     return new Promise(async (resolve, reject) => {
@@ -474,7 +515,8 @@ module.exports = {
     getUsers,
     setResetKey,
     getUserByEmail,
-    setPassword
+    setPassword,
+    getHistory
 
 }
 

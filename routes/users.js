@@ -92,6 +92,7 @@ router.post('/users/newUser', async (req, res) => {
     const hashedPassword = await bcrypt.hash(req.body.password, salt)
 
     var user = req.body
+
     user.password = hashedPassword;
 
     database.addNewUser(user).then(data => {
@@ -260,8 +261,9 @@ router.delete('/users/deleteUser', outhoricateToken, async (req, res) => {
 
 
 router.post('/users/addEvent', outhoricateToken, async (req, res) => {
-  console.log(req.body)
-  await database.addEvent(req.body)
+  let date = getActualDate();
+
+  await database.addEvent(req.body, date)
 })
 router.post('/users/delEvent', outhoricateToken, async (req, res) => {
   console.log(req.body)
@@ -275,10 +277,10 @@ router.post('/users/delEvent', outhoricateToken, async (req, res) => {
 
 })
 router.post('/users/addList', outhoricateToken, async (req, res) => {
+  console.log("cycki");
+  let date = getActualDate();
 
-
-  console.log(req.body)
-  await database.addList(req.body)
+  await database.addList(req.body, date)
 
 })
 
@@ -313,6 +315,15 @@ router.post('/users/getNotices', outhoricateToken, async (req, res) => {
   });
 
 })
+
+router.post('/users/getHistory', outhoricateToken, async (req, res) => {
+
+  await database.getHistory(req.body).then(data => {
+    console.log(data);
+    res.json(data);
+  })
+
+})
 router.delete('/users/delNotice', outhoricateToken, async (req, res) => {
   console.log(req.body)
   await database.deleteNotice(req.body).then(async (data) => {
@@ -329,7 +340,9 @@ router.delete('/users/delNotice', outhoricateToken, async (req, res) => {
 
 })
 router.post('/users/addNotice', async (req, res) => {
-  await database.addNotice(req.body).then(done => {
+  let date = getActualDate();
+
+  await database.addNotice(req.body, date).then(done => {
     res.json({ "message": done })
   }).catch((error) => {
     res.json({ "error": error })
@@ -374,6 +387,12 @@ function generateRefreshToken(user) {
 
 }
 
+function getActualDate() {
+  let today = new Date();
+  let date = (today.getDay() <= 9 ? "0" + today.getDay() : today.getDay()) + "-" + ((today.getMonth() + 1) <= 9 ? "0" + (today.getMonth() + 1) : (today.getDay() + 1)) + "-" + today.getFullYear();
+
+  return date;
+}
 
 
 module.exports = router
